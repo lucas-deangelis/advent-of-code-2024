@@ -1,4 +1,3 @@
-use std::string::ParseError;
 use std::str::FromStr;
 
 use regex::Regex;
@@ -41,38 +40,32 @@ fn main() {
 
     let mul_regex = Regex::new(r"mul\((\d+),(\d+)\)").unwrap();
 
-    let mut res = mul_regex.captures_iter(&input).fold(0, |acc, caps| acc + parse_caps(&caps[1], &caps[2]));
+    let res = mul_regex.captures_iter(&input).fold(0, |acc, caps| acc + parse_caps(&caps[1], &caps[2]));
 
     println!("Silver star: {}", res);
 
     let input = std::fs::read_to_string("input.txt").expect("Failed to read input file");
-    // let input = "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))".to_string();
-    let mut inside = true;
-    let mut res2 = 0;
 
-        // Create regex pattern that matches all three cases
+    // Create regex pattern that matches all three cases
     let pattern = Regex::new(r"do\(\)|don't\(\)|mul\(\d+,\d+\)").unwrap();
 
     // Find all matches and join them together
-    let a = pattern.find_iter(&input)
+    let res2 = pattern.find_iter(&input)
         .map(|m| m.as_str())
         .map(|s| Token::from_str(s))
         .filter_map(Result::ok)
-        .collect::<Vec<_>>();
-
-    for tok in a {
-        match tok {
-            Token::Do => inside = true,
-            Token::Dont => inside = false,
-            Token::Mul(x, y) => {
-                if inside {
-                    res2 += x * y;
-                } 
+        .fold((0, true), |(res, active), tok| {
+            match tok {
+                Token::Do => (res, true),
+                Token::Dont => (res, false),
+                Token::Mul(x, y) => match active {
+                    true => (res + (x * y), true),
+                    false => (res, false),
+                }
             }
-        }
-    }
+        });
 
-    println!("Gold star: {}", res2);
+    println!("Gold star: {}", res2.0);
 }
 
 fn parse_caps(a: &str, b: &str) -> i32 {
